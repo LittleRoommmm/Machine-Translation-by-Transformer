@@ -5,6 +5,9 @@
 # @File     : train.py 
 # @Software : PyCharm
 
+#import os
+#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import tensorflow as tf
 from hyperparams import HyperParams as hp

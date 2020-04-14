@@ -1,8 +1,8 @@
-# !/user/bin/env python 
-# -*- coding: utf-8 -*- 
+# !/user/bin/env python
+# -*- coding: utf-8 -*-
 # @Time     : 2019/12/3 0003 19:49
 # @Author   : yuenobel
-# @File     : train.py 
+# @File     : train.py
 # @Software : PyCharm
 
 #import os
@@ -19,15 +19,19 @@ import matplotlib.pyplot as plt
 
 # 动态学习率
 '''学习率衰减计算:lrate = d_model^-0.5 * min(step_num^-0.5, step_num*warmup_steps^-1.5)'''
+
+
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
     def __init__(self, d_model, warmup_steps=4000):
         super(CustomSchedule, self).__init__()
         self.d_model = tf.cast(d_model, tf.float32)
         self.warmup_steps = warmup_steps
+
     def __call__(self, step):
         arg1 = tf.math.rsqrt(step)
         arg2 = step * (self.warmup_steps ** -1.5)
         return tf.math.rsqrt(0.5) * tf.math.minimum(arg1, arg2)
+
 
 # 学习率
 lr = CustomSchedule(hp.d_model)
@@ -43,22 +47,30 @@ optimizer = tf.keras.optimizers.Adam(lr, beta_1=0.9, beta_2=0.98, epsilon=1e-8)
 
 # 损失和准确率
 '''由于目标序列是填充的，因此在计算损耗时应用填充掩码很重要。 padding的掩码为0，没padding的掩码为1'''
-loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')
+loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
+    from_logits=True, reduction='none')
+
+
 def loss_fun(y_true, y_pred):
     mask = tf.math.logical_not(tf.math.equal(y_true, 0))
     loss_ = loss_object(y_true, y_pred)
     mask = tf.cast(mask, dtype=loss_.dtype)
     loss_ *= mask
     return tf.reduce_mean(loss_)
+
+
 # 用于记录损失和准确率
 train_loss = tf.keras.metrics.Mean(name='train_loss')
 train_acc = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 
+# 加载数据集，生成word2id和id2word字典
 de2index, index2de = load_de_vocab()
 en2index, index2en = load_en_vocab()
+#计算字典大小
 input_vocab_size = len(de2index)
 target_vocab_size = len(en2index)
 
+#初始化模型对象
 transformer = Transformer(hp.d_model,
                           hp.num_layers,
                           hp.num_heads,
@@ -95,7 +107,8 @@ def train_step(inputs, targets):
     tar_inp = targets[:, :-1]
     tar_real = targets[:, 1:]
     # 构造mask
-    encoder_padding_mask, look_ahead_mask, decoder_padding_mask = create_mask(inputs, tar_inp)
+    encoder_padding_mask, look_ahead_mask, decoder_padding_mask = create_mask(
+        inputs, tar_inp)
 
     with tf.GradientTape() as tape:
         pred, _ = transformer(inputs,
@@ -108,7 +121,8 @@ def train_step(inputs, targets):
         # 求梯度
         gradients = tape.gradient(loss, transformer.trainable_variables)
         # 反向传播
-        optimizer.apply_gradients(zip(gradients, transformer.trainable_variables))
+        optimizer.apply_gradients(
+            zip(gradients, transformer.trainable_variables))
         # 记录loss和acc
         train_loss(loss)
         train_acc(tar_real, pred)
@@ -116,7 +130,7 @@ def train_step(inputs, targets):
 
 for epoch in range(hp.EPOCHS):
     start_time = time.time()
-    # 重置
+    # 重置 清零？
     train_loss.reset_states()
     train_acc.reset_states()
     for step, (inputs, targets) in enumerate(get_batch_data()):
@@ -129,5 +143,6 @@ for epoch in range(hp.EPOCHS):
     if epoch % 2 == 0:
         ckpt_save_path = ckpt_manager.save()
         print('epoch{}, save model at {}'.format(epoch, ckpt_save_path))
-    print('epoch:{}, loss:{:.4f}, acc:{:.4f}'.format(epoch, train_loss.result(), train_acc.result()))
+    print('epoch:{}, loss:{:.4f}, acc:{:.4f}'.format(
+        epoch, train_loss.result(), train_acc.result()))
     print('time in one epoch:{}'.format(time.time() - start_time))

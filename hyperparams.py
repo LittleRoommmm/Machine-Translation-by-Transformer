@@ -24,7 +24,7 @@ class HyperParams:
     # model
     max_seq_len = 20        # 句子的最长长度
     min_cnt = 20            # 单词出现次数太少的，用<UNK>代替
-    d_model = 512
+    d_model = 512           # 隐藏单元的个数
     num_layers = 6
     num_heads = 8
     dropout_rate = 0.1

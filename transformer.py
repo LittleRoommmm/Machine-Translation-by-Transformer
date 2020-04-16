@@ -224,10 +224,13 @@ class Encoder(tf.keras.layers.Layer):
 
 # padding mask
 def create_padding_mask(seq):
+    # 这个padding的用意是由于之前为了把所有输入句子的长度都设置为一致，设置了最大句子长度为20，没有达到20的句子就用padding操作在后面补0
+    # 但是由于0是无意义的数据，不能在之后的注意力模块中把padding的0加入进去计算注意力机制，所以这个时候就需要mask
     '''为了避免输入中padding的token对句子语义的影响，需要将padding位mask掉，
     原来为0的padding项的mask输出为1; encoder和decoder过程都会用到'''
+    #tf.cast 数据类型转换 判断seq中是否有等于0的元素，如果有，由tf.math.equal返回true，再由tf.float32返回1，由此实现mask为1
     seq = tf.cast(tf.math.equal(seq, 0), tf.float32)
-    # 扩充维度以便于使用attention矩阵;seq输入shape=[batch_size, seq_len]；输出shape=[batch_siz, 1, 1, seq_len]
+    # nexaxis用于扩充维度，扩充维度以便于使用attention矩阵;seq输入shape=[batch_size, seq_len]；输出shape=[batch_siz, 1, 1, seq_len]
     return seq[:, np.newaxis, np.newaxis, :]
 
 # look-ahead mask
@@ -243,13 +246,13 @@ def create_look_ahead_mask(size):
 
 def create_mask(inputs, targets):
     # 编码器只有padding_mask
-    encoder_padding_mask = create_padding_mask(inputs)
+    encoder_padding_mask = create_padding_mask(inputs)#将inputs里面所有之前用于补齐的padding全部mask为1
     # 解码器decoder_padding_mask,用于第二层multi-head attention
     decoder_padding_mask = create_padding_mask(inputs)
     # seq_mask mask掉未预测的词
     seq_mask = create_look_ahead_mask(tf.shape(targets)[1])
     # decoder_targets_padding_mask 解码层的输入padding mask
-    decoder_targets_padding_mask = create_padding_mask(targets)
+    decoder_targets_padding_mask = create_padding_mask(targets)#将targets里面所有之前用于补齐的padding全部mask为1
     # 合并解码层mask，用于第一层masked multi-head attention
     look_ahead_mask = tf.maximum(decoder_targets_padding_mask, seq_mask)
     return encoder_padding_mask, look_ahead_mask, decoder_padding_mask

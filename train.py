@@ -102,8 +102,14 @@ transformer是个自动回归模型：它一次预测一个部分，并使用其
 而预测时则根据前一个的输出预测下一个词
 为防止模型在预期输出处达到峰值，模型使用look-ahead mask
 '''
-@tf.function
+# @tf.function注解会使python代码转换为图表示代码，运行速度更快？ 但是如果写了它则调试无法进入
+#@tf.function
 def train_step(inputs, targets):
+    # linetest='你是猪头吗'
+    # print(linetest[:-1])
+    #输出：你是猪头
+    # print(linetest[1:])
+    #输出：是猪头吗
     tar_inp = targets[:, :-1]
     tar_real = targets[:, 1:]
     # 构造mask
@@ -134,7 +140,7 @@ for epoch in range(hp.EPOCHS):
     train_loss.reset_states()
     train_acc.reset_states()
     for step, (inputs, targets) in enumerate(get_batch_data()):
-        print(inputs)
+        #print(inputs)
         train_step(inputs, targets)
         if step % 10 == 0:
             print(' epoch{},step:{}, loss:{:.4f}, acc:{:.4f}'.format(

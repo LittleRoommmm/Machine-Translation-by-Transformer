@@ -17,7 +17,7 @@ class HyperParams:
 
     # training
     batch_size = 32
-    EPOCHS = 3
+    EPOCHS = 4
     dff = 2048
     logdir = './logdir'
 
